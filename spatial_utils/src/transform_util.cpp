@@ -1,4 +1,5 @@
 #include <spatial_utils/transform_util.h>
+#include <Eigen/Geometry> // for Quaterniond
 
 /*
     For this one.
@@ -12,7 +13,23 @@
             4x4 rigid transformation.
 */
 Eigen::MatrixXd transformToMatrix(const geometry_msgs::msg::TransformStamped &transform) {
+
+    ///    Create a 4x4 matrix
     Eigen::MatrixXd matrix = Eigen::MatrixXd::Identity(4,4);
+
+    // convert quaternion to rotation matrix
+    Eigen::Quaterniond q(transform.transform.rotation.w,
+                         transform.transform.rotation.x,
+                         transform.transform.rotation.y,
+                         transform.transform.rotation.z);
+
+    matrix.block<3,3>(0,0) = q.toRotationMatrix();
+
+    // Add translation to the right column
+    matrix(0,3) = transform.transform.translation.x;
+    matrix(1,3) = transform.transform.translation.y;
+    matrix(2,3) = transform.transform.translation.z;
+
     return matrix;
 }
 
@@ -31,6 +48,22 @@ Eigen::MatrixXd transformToMatrix(const geometry_msgs::msg::TransformStamped &tr
 geometry_msgs::msg::TransformStamped matrixToTransform(
     const Eigen::MatrixXd &matrix, const std::string &parent_frame, const std::string &child_frame) {
     geometry_msgs::msg::TransformStamped transform_msg;
+
+    transform.header.frame_id = parent_frame;
+    transform.child_frame_id = child_frame;
+
+    transform_msg.transform.translation.x = matrix(0,3);
+    transform_msg.transform.translation.y = matrix(1,3);
+    transform_msg.transform.translation.z = matrix(2,3);
+
+    Eigen::Matrix3d rotation_matrix = matrix.block<3,3>(0,0);
+    Eigen::Quaterniond q(rotation_matrix);
+
+    transform_msg.transform.rotation.x = q.x();
+    transform_msg.transform.rotation.y = q.y();
+    transform_msg.transform.rotation.z = q.z();
+    transform_msg.transform.rotation.w = q.w();
+
     return transform_msg;
 }
 
