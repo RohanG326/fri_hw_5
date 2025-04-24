@@ -84,7 +84,7 @@ void MoveToTarget::copyToGoalPoseAndSend(
     goal_pose.header.frame_id = "base_link";  // expressed relative to base_link
 
     // Create and send goal
-    nav2_msgs::action::NavigateToPose::Goal goal_msg;
+    nav2_msgs::action::NavigateToPose::Goal goal_msg = nav2_msgs::action::NavigateToPose::Goal();
     goal_msg.pose = goal_pose;
 
     client_->async_send_goal(goal_msg, send_goal_options_);
