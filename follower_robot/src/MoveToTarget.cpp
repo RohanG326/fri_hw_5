@@ -55,9 +55,37 @@ void MoveToTarget::result_callback(
 */
 void MoveToTarget::copyToGoalPoseAndSend(
     Eigen::MatrixXd &goal_pose_relative_to_base_link
-    ) {
+) {
     RCLCPP_INFO(node_->get_logger(), "Sending goal!");
+
+    if (goal_pose_relative_to_base_link.rows() != 4 || goal_pose_relative_to_base_link.cols() != 4) {
+        RCLCPP_ERROR(node_->get_logger(), "Input matrix must be 4x4!");
+        return;
+    }
+
     geometry_msgs::msg::PoseStamped goal_pose;
-    nav2_msgs::action::NavigateToPose::Goal goal_msg = nav2_msgs::action::NavigateToPose::Goal();
+    
+    // Extract translation
+    goal_pose.pose.position.x = goal_pose_relative_to_base_link(0, 3);
+    goal_pose.pose.position.y = goal_pose_relative_to_base_link(1, 3);
+    goal_pose.pose.position.z = goal_pose_relative_to_base_link(2, 3);
+
+    // Extract rotation
+    Eigen::Matrix3d rotation_matrix = goal_pose_relative_to_base_link.block<3, 3>(0, 0);
+    Eigen::Quaterniond quaternion(rotation_matrix);
+
+    goal_pose.pose.orientation.x = quaternion.x();
+    goal_pose.pose.orientation.y = quaternion.y();
+    goal_pose.pose.orientation.z = quaternion.z();
+    goal_pose.pose.orientation.w = quaternion.w();
+
+    // Fill header
+    goal_pose.header.stamp = node_->get_clock()->now();
+    goal_pose.header.frame_id = "base_link";  // expressed relative to base_link
+
+    // Create and send goal
+    nav2_msgs::action::NavigateToPose::Goal goal_msg;
+    goal_msg.pose = goal_pose;
+
     client_->async_send_goal(goal_msg, send_goal_options_);
 }
