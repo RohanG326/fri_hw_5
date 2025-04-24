@@ -116,6 +116,17 @@ Eigen::MatrixXd FollowerRobotNode::computeGoToFrameFromBaseLink(
     */
     Eigen::MatrixXd transform = Eigen::MatrixXd::Identity(4, 4);
 
+    double x = base_link_to_tag1.transform.translation.x;
+    double y = base_link_to_tag1.transform.translation.y;
+
+    double angle = atan2(y, x);
+
+    Eigen::AngleAxis rotation(angle, Eigen::Vector3d::UnitZ());
+    transform.block<3, 3>(0, 0) = rotation.toRotationMatrix();
+
+    transform(0, 3) = x - follow_distance_ * std::cos(angle);
+    transform(1, 3) = y - follow_distance_ * std::sin(angle);
+
     return transform;
 }
 
@@ -128,10 +139,14 @@ double FollowerRobotNode::computeDistanceBaseLinkTag1(
 
         Distance is just l2 norm or Euclidean distance. You've got this.
     */
-    double distance = 0.0;
-    RCLCPP_INFO_STREAM(this->get_logger(),
-        "distance:  " << distance << endl);
-    return distance;  
+
+        double x = base_link_to_tag1.transform.translation.x;
+        double y = base_link_to_tag1.transform.translation.y;
+        double z = base_link_to_tag1.transform.translation.z;
+        double distance = std::sqrt(x*x + y*y + z*z);
+        RCLCPP_INFO_STREAM(this->get_logger(),
+        "Distance:  " << distance << endl);
+        return distance;  
 }
 
 //I implemented this. You do not need to change it.
@@ -217,7 +232,10 @@ void FollowerRobotNode::computeAndAct() {
             Set tf1.header.stamp.
             Send using tf_broadcaster_.
         */
-        geometry_msgs::msg::TransformStamped tf1;
+        geometry_msgs::msg::TransformStamped tf1 = matrixToTransform(m_map_to_go_to_, "map", "base_link");
+        tf1.header.stamp = this->get_clock()->now();
+        tf_broadcaster_.sendTransform(tf1);
+
 
     } catch (const tf2::TransformException &ex) {
         RCLCPP_WARN(this->get_logger(), "Could not transform world -> example_frame: %s", ex.what());
