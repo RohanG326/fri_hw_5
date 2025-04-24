@@ -119,13 +119,18 @@ Eigen::MatrixXd FollowerRobotNode::computeGoToFrameFromBaseLink(
     double x = base_link_to_tag1.transform.translation.x;
     double y = base_link_to_tag1.transform.translation.y;
 
-    double angle = atan2(y, x);
+    double angle = std::atan2(y, x);
+
+    Eigen::Vector3d target(x,y, 0.0);
+    Eigen::Vector3d distance = target.normalized();
+
+    Eigen::Vector3d total_dist = distance * follow_distance;
 
     Eigen::AngleAxis rotation(angle, Eigen::Vector3d::UnitZ());
     transform.block<3, 3>(0, 0) = rotation.toRotationMatrix();
 
-    transform(0, 3) = x - follow_distance_ * std::cos(angle);
-    transform(1, 3) = y - follow_distance_ * std::sin(angle);
+    transform(0, 3) = x - total_dist[0];
+    transform(1, 3) = y - total_dist[1];
 
     return transform;
 }
