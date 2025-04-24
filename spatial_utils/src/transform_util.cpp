@@ -49,8 +49,8 @@ geometry_msgs::msg::TransformStamped matrixToTransform(
     const Eigen::MatrixXd &matrix, const std::string &parent_frame, const std::string &child_frame) {
     geometry_msgs::msg::TransformStamped transform_msg;
 
-    transform.header.frame_id = parent_frame;
-    transform.child_frame_id = child_frame;
+    transform_msg.header.frame_id = parent_frame;
+    transform_msg.child_frame_id = child_frame;
 
     transform_msg.transform.translation.x = matrix(0,3);
     transform_msg.transform.translation.y = matrix(1,3);
